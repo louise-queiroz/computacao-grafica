@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/twgl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gl-matrix/dist/gl-matrix-min.js"></script>
+    <script src="app.js"></script>
+    <script src="script.js"></script>
+    <title>Editor de Cena</title>
+</head>
+<body>
+    <section id="menu-left">
+        <div class="button-container">
+            <div class="model-selection">
+                <div class="button-options">
+                    <button id="btnSalvar">Salvar</button>
+                    <button id="btnLimpar">Limpar</button>
+                    <button id="btnCarregar">Carregar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="transformation-editing">
+            <label for="rotation">Rotação</label>
+            <input id="rotation" type="range" step="0.1" value="5" min="0" max="10">
+
+            <label for="scale">Escala</label>
+            <input id="scale" type="range" step="0.1" value="5" min="0" max="10">
+
+            <label for="translation">Translação</label>
+            <div class="botton-translation">
+                <div class="botton-txyz">
+                    <p>X:</p><input id="translateXButton" type="range" step="0.1" value="0" min="-5" max="5">
+                </div>
+                <div class="botton-txyz">
+                    <p>Y:</p><input id="translateYButton" type="range" step="0.1" value="0" min="-5" max="5">
+                </div>
+                <div class="botton-txyz">
+                    <p>Z:</p><input id="translateZButton" type="range" step="0.1" value="0" min="-5" max="5">
+                </div>
+            </div>
+        </div>
+    </section>    
+    
+    <section id="canvas">
+        <canvas id="sceneCanvas" width="800" height="600"></canvas>
+    </section>
+
+    <div id="menu-right">
+        <h3>Modelos Disponíveis</h3>
+        <li class="box1" data-model="./assets/objs/carpet.obj">
+            <canvas id="canvasCarpet"></canvas>
+        </li>
+        <li class="box1" data-model="./assets/objs/curtains.obj">
+            <canvas id="canvasCurtains"></canvas>
+        </li>
+
+        <li class="box1" data-model="./assets/objs/floor_tiles.obj">
+            <canvas id="canvasFloor"></canvas>
+        </li>
+
+        <li class="box1" data-model="./assets/objs/picture_frames.obj">
+            <canvas id="canvasFrames"></canvas>
+        </li>
+
+        <li class="box1" data-model="./assets/objs/sofa.obj">
+            <canvas id="canvasSofa"></canvas>
+        </li>
+        
+        <li class="box1" data-model="./assets/objs/TV.obj">
+            <canvas id="canvasTV"></canvas>
+        </li>
+
+        <li class="box1" data-model="./assets/objs/window.obj">
+            <canvas id="canvasWindow"></canvas>
+        </li>
+
+        <li class="box1" data-model="./assets/objs/table.obj">
+            <canvas id="canvasTable"></canvas>
+        </li>
+
+        <li class="box1" data-model="./assets/objs/tall_flower.obj">
+            <canvas id="canvasFlower"></canvas>
+        </li>
+
+        <li class="box1" data-model="./assets/objs/wall_lamp.obj">
+            <canvas id="canvasLamp"></canvas>
+        </li>
+    </div>
+
+</body>
+</html>

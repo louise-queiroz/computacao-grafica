@@ -38,7 +38,7 @@ body {
     font-size: 16px;
     cursor: pointer;
     border-radius: 12px; /* Arredonda as pontas */
-    background-color: #f37bdf;
+    background-color: #d090cc;
     color: white;
     border: none;
     font-family: "Montserrat", serif;
@@ -46,6 +46,14 @@ body {
     font-style: italic;
   }
   
+  #menu-right canvas {
+    width: 150px;
+    height: 150px;
+    display: block;
+    margin: auto;
+    background-color: white; 
+}
+
 
   #canvas {
     width: 60%;
