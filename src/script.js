@@ -1,6 +1,9 @@
 import { parseOBJ, parseMTL, vs, fs } from "./read.js";
 import { degToRad, getGeometriesExtents } from "./read.js";
 
+canvas.width = 500;
+canvas.height = 500;
+
 // IDs dos canvases no menu
 let idCanvas = [
   "canvas1",
