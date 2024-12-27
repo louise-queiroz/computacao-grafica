@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     modelos.forEach(modelo => {
         const canvasId = modelo.querySelector('canvas').id;
         const dataModel = modelo.dataset.model.replace(/^\.\/assets/, '../assets'); // Corrigido caminho
-        
+
         // Renderizar automaticamente ao carregar a página
         loadModel(canvasId, dataModel);
     });
@@ -24,10 +24,11 @@ function loadModel(canvasId, modelPath) {
     const vertexShaderSource = `
         attribute vec4 a_position;
         attribute vec3 a_normal;
+        uniform mat4 u_modelViewMatrix;
         varying vec3 v_normal;
         void main() {
-            gl_Position = a_position;
-            v_normal = a_normal;
+            gl_Position = u_modelViewMatrix * a_position;
+            v_normal = mat3(u_modelViewMatrix) * a_normal;
         }
     `;
 
@@ -78,16 +79,41 @@ function loadModel(canvasId, modelPath) {
                         gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
                         gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 0, 0);
 
-                        // Definindo a cor com base no material MTL
+                        // Uniform locations
                         const colorLocation = gl.getUniformLocation(program, 'u_color');
+                        const modelViewMatrixLocation = gl.getUniformLocation(program, 'u_modelViewMatrix');
+                        
+                        // Define cor com base no material MTL
                         gl.uniform4f(colorLocation, material.diffuse[0], material.diffuse[1], material.diffuse[2], 1.0);
 
-                        // Renderizando
-                        gl.clearColor(0.0, 0.0, 0.0, 1.0); // Cor de fundo (preto)
+                        // Configuração inicial do WebGL
+                        gl.clearColor(0.5, 0.5, 0.5, 1.0); // Fundo cinza claro
                         gl.enable(gl.DEPTH_TEST);
 
-                        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                        gl.drawArrays(gl.TRIANGLES, 0, geometry.data.position.length / 3);
+                        // Função de animação
+                        let rotationAngle = 0;
+                        function render() {
+                            rotationAngle += 0.01; // Ajuste a velocidade de rotação
+
+                            // Criação da matriz de rotação
+                            const cos = Math.cos(rotationAngle);
+                            const sin = Math.sin(rotationAngle);
+                            const modelViewMatrix = new Float32Array([
+                                cos,  0, sin, 0,
+                                0,    1,  0,  0,
+                               -sin,  0, cos, 0,
+                                0,    0,  0,  1,
+                            ]);
+
+                            gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
+
+                            // Limpar e desenhar
+                            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                            gl.drawArrays(gl.TRIANGLES, 0, geometry.data.position.length / 3);
+
+                            requestAnimationFrame(render); // Continuar animação
+                        }
+                        render(); // Inicia a renderização
                     })
                     .catch(error => console.error("Erro ao carregar o arquivo MTL:", error));
             })
@@ -125,13 +151,14 @@ function createProgram(gl, vertexShaderSource, fragmentShaderSource) {
 function parseOBJ(text) {
     const objPositions = [[0, 0, 0]];
     const objNormals = [[0, 0, 0]];
+    const objIndices = [];
 
     let webglVertexData = [[], []]; // [positions, normals]
-
     const geometry = {
         data: {
             position: webglVertexData[0],
             normal: webglVertexData[1],
+            index: objIndices, // Armazenar índices
         },
     };
 
@@ -144,11 +171,14 @@ function parseOBJ(text) {
         },
         f(parts) {
             const ptn = parts.map(part => part.split("/"));
+            const idx = [];
             ptn.forEach(vertex => {
                 const [posIdx, , normIdx] = vertex.map(Number);
+                idx.push(webglVertexData[0].length / 3);
                 webglVertexData[0].push(...objPositions[posIdx]);
                 webglVertexData[1].push(...objNormals[normIdx]);
             });
+            objIndices.push(...idx);
         }
     };
 
@@ -158,6 +188,12 @@ function parseOBJ(text) {
         if (line === "" || line.startsWith("#")) continue;
         const [keyword, ...parts] = line.split(/\s+/);
         if (keywords[keyword]) keywords[keyword](parts);
+    }
+
+    // Geração de normais suavizadas (se necessário)
+    if (webglVertexData[1].length === 0) {
+        const normals = new Array(webglVertexData[0].length / 3).fill([0, 0, 1]);
+        webglVertexData[1] = [].concat(...normals);
     }
 
     return geometry;
