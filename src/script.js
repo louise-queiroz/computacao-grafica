@@ -1,5 +1,5 @@
-import { parseOBJ, parseMTL, vs, fs } from "./read.js";
-import { degToRad, getGeometriesExtents } from "./read.js";
+import { parseOBJ, parseMTL, vertexShaderSource, fragmentShaderSource } from "./app.js";
+import { getGeometriesExtents } from "./app.js";
 
 canvas.width = 500;
 canvas.height = 500;
@@ -20,17 +20,21 @@ let idCanvas = [
 
 // Caminhos dos arquivos OBJ
 let objAddresses = [
+  { path: "./assets/objs/cactus.obj" },
   { path: "./assets/objs/carpet.obj" },
-  { path: "./assets/objs/curtains.obj" },
-  { path: "./assets/objs/floor_tiles.obj" },
-  { path: "./assets/objs/picture_frames.obj" },
-  { path: "./assets/objs/sofa.obj" },
-  { path: "./assets/objs/TV.obj" },
-  { path: "./assets/objs/window.obj" },
-  { path: "./assets/objs/table.obj" },
-  { path: "./assets/objs/tall_flower.obj" },
-  { path: "./assets/objs/wall_lamp.obj" }
+  { path: "./assets/objs/coffee_table.obj" },
+  { path: "./assets/objs/couch.obj" },
+  { path: "./assets/objs/double_bed.obj" },
+  { path: "./assets/objs/lamp.obj" },
+  { path: "./assets/objs/plant.obj" },
+  { path: "./assets/objs/shelf.obj" },
+  { path: "./assets/objs/simple_desk_A.obj" },
+  { path: "./assets/objs/simple_library_A.obj" }
 ];
+
+function degToRad(degrees) {
+  return degrees * (Math.PI / 180);
+}
 
 // Função para renderizar o menu
 async function renderMenu() {
@@ -59,17 +63,38 @@ async function renderMenu() {
 
 // Função para carregar o modelo OBJ
 async function loadObj(gl, objAddress) {
-  const meshProgramInfo = twgl.createProgramInfo(gl, [vs, fs]);
+  const meshProgramInfo = twgl.createProgramInfo(gl, [vertexShaderSource, fragmentShaderSource]);
   twgl.setAttributePrefix("a_");
 
   const objHref = objAddress.path;
-  const response = await fetch(objHref);
-  const text = await response.text();
-  const obj = parseOBJ(text);
+  let objData;
+
+  try {
+    const response = await fetch(objHref);
+    if (!response.ok) {
+      throw new Error(`Falha ao carregar o arquivo: ${objHref}`);
+    }
+    const text = await response.text();
+    objData = parseOBJ(text);
+
+    if (!objData) {
+      throw new Error(`Erro ao analisar o arquivo OBJ: ${objHref}`);
+    }
+
+    console.log("OBJ Data:", objData);
+
+    if (!Array.isArray(objData.geometries)) {
+      throw new Error(`Geometrias não encontradas ou inválidas no arquivo OBJ: ${objHref}`);
+    }
+
+  } catch (error) {
+    console.error(`Erro ao carregar ou analisar o arquivo: ${objHref}`, error);
+    return null;
+  }
 
   const baseHref = new URL(objHref, window.location.href);
   const matTexts = await Promise.all(
-    obj.materialLibs.map(async (filename) => {
+    objData.materialLibs.map(async (filename) => {
       const matHref = new URL(filename, baseHref).href;
       const response = await fetch(matHref);
       return await response.text();
@@ -82,7 +107,6 @@ async function loadObj(gl, objAddress) {
     defaultWhite: twgl.createTexture(gl, { src: [255, 255, 255, 255] }),
   };
 
-  // Carregar textura para os materiais
   for (const material of Object.values(materials)) {
     Object.entries(material)
       .filter(([key]) => key.endsWith("Map"))
@@ -109,7 +133,7 @@ async function loadObj(gl, objAddress) {
     opacity: 1,
   };
 
-  const parts = obj.geometries.map(({ material, data }) => {
+  const parts = objData.geometries.map(({ material, data }) => {
     if (data.color) {
       if (data.position.length === data.color.length) {
         data.color = { numComponents: 3, data: data.color };
@@ -128,28 +152,38 @@ async function loadObj(gl, objAddress) {
       },
       bufferInfo,
       vao,
-      obj,
+      obj: objData,
     };
   });
 
+  // Calcular as dimensões do modelo (extensão da geometria)
   const extents = getGeometriesExtents(parts[0].obj.geometries);
   const range = m4.subtractVectors(extents.max, extents.min);
+
+  // Escalar todos os modelos para que eles ocupem a mesma área
+  const targetSize = 3; // Tamanho desejado (ajuste conforme necessário)
+  const scaleFactor = targetSize / Math.max(range[0], range[1], range[2]); // Escala para o maior eixo
+
   // Deslocamento do objeto para o centro
   const objOffset = m4.scaleVector(
     m4.addVectors(extents.min, m4.scaleVector(range, 0.5)),
     -1
   );
+
+  // Adicionar escala ao modelo para que todos tenham o mesmo tamanho
+  const scaleMatrix = m4.scaling([scaleFactor, scaleFactor, scaleFactor]);
+
   const cameraTarget = [0, 0, 0];
   const radius = m4.length(range) * 1.2;
   const cameraPosition = m4.addVectors(cameraTarget, [0, 0, radius]);
   const zNear = radius / 100;
   const zFar = radius * 3;
 
-  return { parts, meshProgramInfo, objOffset, cameraPosition, cameraTarget, zNear, zFar };
+  return { parts, meshProgramInfo, objOffset, scaleMatrix, cameraPosition, cameraTarget, zNear, zFar };
 }
 
 // Função para desenhar o objeto no canvas
-function drawObj(gl, { parts, meshProgramInfo, objOffset, cameraPosition, cameraTarget, zNear, zFar }) {
+function drawObj(gl, { parts, meshProgramInfo, objOffset, scaleMatrix, cameraPosition, cameraTarget, zNear, zFar }) {
   function render(time) {
     time *= 0.001;
 
@@ -184,8 +218,8 @@ function drawObj(gl, { parts, meshProgramInfo, objOffset, cameraPosition, camera
     gl.useProgram(meshProgramInfo.program);
     twgl.setUniforms(meshProgramInfo, sharedUniforms);
 
-    // Rotação contínua do objeto
     let u_world = m4.yRotation(time);
+    u_world = m4.multiply(u_world, scaleMatrix); // Aplicar escala
     u_world = m4.translate(u_world, ...objOffset);
 
     for (const { bufferInfo, vao, material } of parts) {

@@ -10,37 +10,71 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Shaders
+export const vertexShaderSource = `
+    attribute vec4 a_position;
+    attribute vec3 a_normal;
+    uniform mat4 u_modelViewMatrix;
+    varying vec3 v_normal;
+    void main() {
+        gl_Position = u_modelViewMatrix * a_position;
+        v_normal = mat3(u_modelViewMatrix) * a_normal;
+    }
+`;
+
+export const fragmentShaderSource = `
+    precision mediump float;
+    uniform vec4 u_color;
+    varying vec3 v_normal;
+    void main() {
+        float light = dot(normalize(v_normal), vec3(0, 0, 1));
+        float ambient = 0.1; // Luz ambiente
+        gl_FragColor = u_color * (light + ambient); // Luz ambiente adicionada
+    }
+`;
+
+export function getGeometriesExtents(geometries) {
+    return geometries.reduce(({ min, max }, { bufferInfo }) => {
+        const { position } = bufferInfo; // Acessando os dados de posição através do bufferInfo
+        const minMax = getExtents(position); // Calcula os limites de posição com base na função getExtents
+
+        return {
+            min: min.map((minVal, ndx) => Math.min(minMax.min[ndx], minVal)),
+            max: max.map((maxVal, ndx) => Math.max(minMax.max[ndx], maxVal)),
+        };
+    }, {
+        min: Array(3).fill(Number.POSITIVE_INFINITY),
+        max: Array(3).fill(Number.NEGATIVE_INFINITY),
+    });
+}
+
+// Função que calcula os limites (mínimo e máximo) dos dados de posição
+function getExtents(position) {
+    let min = [Infinity, Infinity, Infinity];
+    let max = [-Infinity, -Infinity, -Infinity];
+
+    // Percorre os dados de posição e encontra os valores mínimo e máximo para cada coordenada
+    for (let i = 0; i < position.length; i += 3) {
+        const x = position[i];
+        const y = position[i + 1];
+        const z = position[i + 2];
+
+        min = [Math.min(min[0], x), Math.min(min[1], y), Math.min(min[2], z)];
+        max = [Math.max(max[0], x), Math.max(max[1], y), Math.max(max[2], z)];
+    }
+
+    return { min, max };
+}
+
 function loadModel(canvasId, modelPath) {
     const canvas = document.getElementById(canvasId);
-    const gl = canvas.getContext('webgl');
+    const gl = canvas.getContext('webgl2');
 
     if (!gl) {
         console.error("WebGL não está disponível.");
         alert("WebGL não está disponível. Atualize seu navegador.");
         return;
     }
-
-    // Shaders
-    const vertexShaderSource = `
-        attribute vec4 a_position;
-        attribute vec3 a_normal;
-        uniform mat4 u_modelViewMatrix;
-        varying vec3 v_normal;
-        void main() {
-            gl_Position = u_modelViewMatrix * a_position;
-            v_normal = mat3(u_modelViewMatrix) * a_normal;
-        }
-    `;
-
-    const fragmentShaderSource = `
-        precision mediump float;
-        uniform vec4 u_color;
-        varying vec3 v_normal;
-        void main() {
-            float light = dot(normalize(v_normal), vec3(0, 0, 1));
-            gl_FragColor = u_color * light;
-        }
-    `;
 
     const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
     if (program) {
@@ -148,7 +182,7 @@ function createProgram(gl, vertexShaderSource, fragmentShaderSource) {
     return program;
 }
 
-function parseOBJ(text) {
+export function parseOBJ(text) {
     const objPositions = [[0, 0, 0]];
     const objNormals = [[0, 0, 0]];
     const objIndices = [];
@@ -199,7 +233,7 @@ function parseOBJ(text) {
     return geometry;
 }
 
-function parseMTL(text) {
+export function parseMTL(text) {
     const materials = [];
     const lines = text.split("\n");
     let currentMaterial = null;

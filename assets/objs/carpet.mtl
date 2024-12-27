@@ -1,10 +1,10 @@
-# Blender 3.6.5 MTL File: 'None'
+# Blender 3.6.1 MTL File: 'bedroom_items_script.blend'
 # www.blender.org
 
-newmtl Material.020
-Ns 0.000000
+newmtl Material.022
+Ns 250.000000
 Ka 1.000000 1.000000 1.000000
-Kd 0.059733 0.078571 0.047336
+Kd 0.205078 0.412542 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.450000
