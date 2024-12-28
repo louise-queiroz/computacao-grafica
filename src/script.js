@@ -20,8 +20,8 @@ let idCanvas = [
 
 // Caminhos dos arquivos OBJ
 let objAddresses = [
-  { path: "./assets/objs/cactus.obj" },
-  { path: "./assets/objs/carpet.obj" },
+  { path: "./assets/objs/bench.obj" },
+  { path: "./assets/objs/bookshelf_1.obj" },
   { path: "./assets/objs/coffee_table.obj" },
   { path: "./assets/objs/couch.obj" },
   { path: "./assets/objs/double_bed.obj" },

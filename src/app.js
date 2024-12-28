@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function () {
     const modelos = document.querySelectorAll('#menu-right .box1');
 
@@ -14,57 +15,30 @@ document.addEventListener('DOMContentLoaded', function () {
 export const vertexShaderSource = `
     attribute vec4 a_position;
     attribute vec3 a_normal;
+    attribute vec2 a_texCoord; // Coordenadas de textura
     uniform mat4 u_modelViewMatrix;
     varying vec3 v_normal;
+    varying vec2 v_texCoord; // Passando coordenadas de textura
     void main() {
         gl_Position = u_modelViewMatrix * a_position;
         v_normal = mat3(u_modelViewMatrix) * a_normal;
+        v_texCoord = a_texCoord; // Atribuindo coordenadas de textura
     }
 `;
 
 export const fragmentShaderSource = `
     precision mediump float;
     uniform vec4 u_color;
+    uniform sampler2D u_texture; // Uniform para a textura
     varying vec3 v_normal;
+    varying vec2 v_texCoord; // Coordenadas de textura
     void main() {
         float light = dot(normalize(v_normal), vec3(0, 0, 1));
         float ambient = 0.1; // Luz ambiente
-        gl_FragColor = u_color * (light + ambient); // Luz ambiente adicionada
+        vec4 textureColor = texture2D(u_texture, v_texCoord); // Aplica a textura
+        gl_FragColor = textureColor * (light + ambient); // Luz ambiente e textura
     }
 `;
-
-export function getGeometriesExtents(geometries) {
-    return geometries.reduce(({ min, max }, { bufferInfo }) => {
-        const { position } = bufferInfo; // Acessando os dados de posição através do bufferInfo
-        const minMax = getExtents(position); // Calcula os limites de posição com base na função getExtents
-
-        return {
-            min: min.map((minVal, ndx) => Math.min(minMax.min[ndx], minVal)),
-            max: max.map((maxVal, ndx) => Math.max(minMax.max[ndx], maxVal)),
-        };
-    }, {
-        min: Array(3).fill(Number.POSITIVE_INFINITY),
-        max: Array(3).fill(Number.NEGATIVE_INFINITY),
-    });
-}
-
-// Função que calcula os limites (mínimo e máximo) dos dados de posição
-function getExtents(position) {
-    let min = [Infinity, Infinity, Infinity];
-    let max = [-Infinity, -Infinity, -Infinity];
-
-    // Percorre os dados de posição e encontra os valores mínimo e máximo para cada coordenada
-    for (let i = 0; i < position.length; i += 3) {
-        const x = position[i];
-        const y = position[i + 1];
-        const z = position[i + 2];
-
-        min = [Math.min(min[0], x), Math.min(min[1], y), Math.min(min[2], z)];
-        max = [Math.max(max[0], x), Math.max(max[1], y), Math.max(max[2], z)];
-    }
-
-    return { min, max };
-}
 
 function loadModel(canvasId, modelPath) {
     const canvas = document.getElementById(canvasId);
@@ -103,6 +77,17 @@ function loadModel(canvasId, modelPath) {
                         gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
                         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(geometry.data.normal), gl.STATIC_DRAW);
 
+                        // Coordenadas de textura (adicionando coordenadas de textura fixas para todos os vértices)
+                        const texCoordBuffer = gl.createBuffer();
+                        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                        const texCoords = new Float32Array(geometry.data.position.length / 3 * 2);
+                        for (let i = 0; i < texCoords.length; i += 2) {
+                            texCoords[i] = (i / 2) % 2; // Repetindo a textura para todos os objetos
+                            texCoords[i + 1] = Math.floor(i / 2) % 2;
+                        }
+                        gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+
+                        // Atribuindo os buffers aos atributos do shader
                         const positionLocation = gl.getAttribLocation(program, 'a_position');
                         gl.enableVertexAttribArray(positionLocation);
                         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -113,8 +98,14 @@ function loadModel(canvasId, modelPath) {
                         gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
                         gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 0, 0);
 
+                        const texCoordLocation = gl.getAttribLocation(program, 'a_texCoord');
+                        gl.enableVertexAttribArray(texCoordLocation);
+                        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                        gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
                         // Uniform locations
                         const colorLocation = gl.getUniformLocation(program, 'u_color');
+                        const textureLocation = gl.getUniformLocation(program, 'u_texture');
                         const modelViewMatrixLocation = gl.getUniformLocation(program, 'u_modelViewMatrix');
                         
                         // Define cor com base no material MTL
@@ -123,6 +114,9 @@ function loadModel(canvasId, modelPath) {
                         // Configuração inicial do WebGL
                         gl.clearColor(0.5, 0.5, 0.5, 1.0); // Fundo cinza claro
                         gl.enable(gl.DEPTH_TEST);
+
+                        // Carregar a textura
+                        const texture = loadTexture(gl, '../assets/objs/texture.png'); // Altere o caminho para o correto
 
                         // Função de animação
                         let rotationAngle = 0;
@@ -140,6 +134,7 @@ function loadModel(canvasId, modelPath) {
                             ]);
 
                             gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
+                            gl.uniform1i(textureLocation, 0); // Bind texture to texture unit 0
 
                             // Limpar e desenhar
                             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -153,6 +148,24 @@ function loadModel(canvasId, modelPath) {
             })
             .catch(error => console.error("Erro ao carregar o arquivo OBJ:", error));
     }
+}
+
+function loadTexture(gl, url) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    
+    // Preencher com uma cor temporária até a textura ser carregada
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+    
+    const image = new Image();
+    image.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+    };
+    image.src = url;
+
+    return texture;
 }
 
 function createShader(gl, type, source) {
