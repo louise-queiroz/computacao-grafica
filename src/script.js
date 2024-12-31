@@ -50,7 +50,7 @@ async function renderMenu() {
     // Definindo tamanho do canvas
     canvas.width = 800;
     canvas.height = 600;
-    
+
     let objAddress = objAddresses[i];
     try {
       const objData = await loadObj(gl, objAddress);
