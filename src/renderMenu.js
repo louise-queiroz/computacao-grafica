@@ -15,16 +15,16 @@ let idCanvas = [
 ];
 
 let objAddresses = [
-  { path: "../assets/objs/barrel_1.obj"},
+  { path: "../assets/objs/barrel_3.obj"},
   { path: "../assets/objs/bed.obj" },
-  { path: "../assets/objs/bench.obj" },
   { path: "../assets/objs/bookshelf_1.obj" },
-  { path: "../assets/objs/candles.obj" },
-  { path: "../assets/objs/carousel.obj" },
-  { path: "../assets/objs/chair.obj" },
-  { path: "../assets/objs/coffee_table.obj" },
-  { path: "../assets/objs/couch.obj" },
-  { path: "../assets/objs/door.obj" },
+  { path: "../assets/objs/bowl.obj" },
+  { path: "../assets/objs/wine.obj" },
+  { path: "../assets/objs/flask_2.obj" },
+  { path: "../assets/objs/plate.obj" },
+  { path: "../assets/objs/torch.obj" },
+  { path: "../assets/objs/wood_box.obj" },
+  { path: "../assets/objs/wooden_crate.obj" },
 ];
 
 async function renderMenu() {
