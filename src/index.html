@@ -17,6 +17,9 @@
                 </div>
             </div>
         </div>
+        
+        <div class="button-selected">
+        </div>
 
         <div class="transformation-editing">
             <label for="rotation">Rotação</label>
@@ -39,60 +42,55 @@
             </div>
         </div>
     </section>    
-    
+
     <section id="canvas">
         <canvas id="sceneCanvas" width="800" height="600"></canvas>
     </section>
 
     <div id="menu-right">
         <h3>Modelos Disponíveis</h3>
-        <li class="box1">
-            <canvas id="canvas1"></canvas>
-        </li>
-        <li class="box1" >
-            <canvas id="canvas2"></canvas>
-        </li>
-
-        <li class="box1">
-            <canvas id="canvas3"></canvas>
-        </li>
-
-        <li class="box1">
-            <canvas id="canvas4"></canvas>
-        </li>
-
-        <li class="box1">
-            <canvas id="canvas5"></canvas>
-        </li>
-        
-        <li class="box1">
-            <canvas id="canvas6"></canvas>
-        </li>
-
-        <li class="box1">
-            <canvas id="canvas7"></canvas>
-        </li>
-
-        <li class="box1">
-            <canvas id="canvas8"></canvas>
-        </li>
-
-        <li class="box1" >
-            <canvas id="canvas9"></canvas>
-        </li>
-
-        <li class="box1">
-            <canvas id="canvas10"></canvas>
-        </li>
-
-
-
+        <ul>
+            <li class="box-models">
+                <canvas id="canvas1"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas2"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas3"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas4"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas5"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas6"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas7"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas8"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas9"></canvas>
+            </li>
+            <li class="box-models">
+                <canvas id="canvas10"></canvas>
+            </li>
+        </ul>
+    </div>
 </body>
 
-<script src="https://cdn.jsdelivr.net/npm/twgl.js@4.18.0/dist/4.x/twgl.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/twgl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gl-matrix/dist/gl-matrix-min.js"></script>
-<script type="module"  src="app.js"></script>
-<script type="module" src="script.js"></script>
-<script type="module" src="renderCanvas.js"></script>
+<script src="https://webgl2fundamentals.org/webgl/resources/m4.js"></script>
+<script src="https://webgl2fundamentals.org/webgl/resources/m3.js"></script>
+<script type="module" src="basic/read.js"></script>
+<script type="module" src="render/renderMenu.js"></script>
+<script type="module" src="render/renderSelect.js"></script>
+<script type="module" src="basic/select.js"></script>
+
 </html>
