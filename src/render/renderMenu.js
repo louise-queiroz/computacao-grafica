@@ -19,7 +19,7 @@ let objAddresses = [
     { path: "../assets/objs/bed.obj" },
     { path: "../assets/objs/bookshelf_1.obj" },
     { path: "../assets/objs/bowl.obj" },
-    { path: "../assets/objs/chair.obj" },
+    { path: "../assets/objs/candles.obj" },
     { path: "../assets/objs/flask_2.obj" },
     { path: "../assets/objs/plate.obj" },
     { path: "../assets/objs/torch.obj" },

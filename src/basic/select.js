@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         "Cama",
         "Estante",
         "Tigela",
-        "Cadeira",
+        "Vela",
         "Frasco",
         "Prato",
         "Tocha",
