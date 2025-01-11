@@ -9,10 +9,6 @@ body {
     font-style: italic;
   }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 82e61baf763d3567af749822df11298ac623fb84
   #menu-left {
     width: 20%;
     display: flex;
@@ -21,11 +17,7 @@ body {
     padding: 10px;
     border-right: 1px solid #ccc;
     box-sizing: border-box;
-<<<<<<< HEAD
     background-color: #da94f0;
-=======
-    background-color: #d02794;
->>>>>>> 82e61baf763d3567af749822df11298ac623fb84
   }
 
   .model-selection, .transformation-editing {
@@ -44,13 +36,8 @@ body {
     padding: 10px;
     font-size: 16px;
     cursor: pointer;
-<<<<<<< HEAD
     border-radius: 12px; 
     background-color: #430357;
-=======
-    border-radius: 12px; /* Arredonda as pontas */
-    background-color: #d090cc;
->>>>>>> 82e61baf763d3567af749822df11298ac623fb84
     color: white;
     border: none;
     font-family: "Montserrat", serif;
@@ -58,7 +45,6 @@ body {
     font-style: italic;
   }
   
-<<<<<<< HEAD
   .button-selected button {
     width: 45%;
     padding: 10px;
@@ -73,20 +59,13 @@ body {
     font-style: italic;
   }
 
-=======
->>>>>>> 82e61baf763d3567af749822df11298ac623fb84
   #menu-right canvas {
     width: 200px;
     height: 200px;
     display: block;
     margin: auto;
-<<<<<<< HEAD
     border: 1px solid black; 
     background-color: #430357;
-=======
-    border: 1px solid black;
-    background-color: #863c81;
->>>>>>> 82e61baf763d3567af749822df11298ac623fb84
 }
 
 
@@ -97,12 +76,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-<<<<<<< HEAD
     background-color: #f1d5f0;
 
-=======
-    background-color: #d090cc;
->>>>>>> 82e61baf763d3567af749822df11298ac623fb84
   }
 
   #menu-right {
@@ -110,7 +85,6 @@ body {
     overflow-y: auto;
     padding: 10px;
     box-sizing: border-box;
-<<<<<<< HEAD
     background-color: #430357;
     display: flex;
     flex-direction: column;
@@ -135,13 +109,6 @@ body {
 #menu-right canvas:hover {
     background-color: #5c1d8d;
 }
-=======
-    background-color: #d02794;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
->>>>>>> 82e61baf763d3567af749822df11298ac623fb84
 
   .botton-translation {
     display: flex;
