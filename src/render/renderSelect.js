@@ -22,8 +22,9 @@ let objAddresses = [
 
 
   let objTextures = {
-    0: { path: "textura1.jpg" },
-    1: { path: "textura2.jpg" }
+    0: { path: "texture.jpg" },
+    1: { path: "textura1.jpg" },
+    2: { path: "textura2.jpg" }
 };
 
 
@@ -261,25 +262,42 @@ export async function transformationOptions(buttonIndex) {
     objDataScene[buttonIndex].objOffset[2] = parseFloat(translationZ.value);
   }
 
+  texturedefaultBtn.onclick = async function () {
+    objDataScene[buttonIndex].parts = await loadTexture(
+        gl,
+        objDataScene[buttonIndex].indexAdress,
+        objTextures[0].path
+    );
+    console.log(`Textura aplicada: ${objTextures[0].path}`);
+
+    texturedefaultBtn.onclick = async function () {
+      objDataScene[buttonIndex].parts = await loadTexture(
+          gl,
+          objDataScene[buttonIndex].indexAdress,
+          objTextures[0].path 
+      );
+      console.log(`Textura aplicada: ${objTextures[0].path}`);
+  };
+
   texture1Btn.onclick = async function () {
     objDataScene[buttonIndex].parts = await loadTexture(
         gl,
         objDataScene[buttonIndex].indexAdress,
-        objTextures[0].path 
+        objTextures[1].path 
     );
-    console.log(`Textura aplicada: ${objTextures[0].path}`);
+    console.log(`Textura aplicada: ${objTextures[1].path}`);
 };
 
   texture2Btn.onclick = async function () {
     objDataScene[buttonIndex].parts = await loadTexture(
         gl,
         objDataScene[buttonIndex].indexAdress,
-        objTextures[1].path
+        objTextures[2].path
     );
-    console.log(`Textura aplicada: ${objTextures[1].path}`);
+    console.log(`Textura aplicada: ${objTextures[2].path}`);
 };
 
-
+  }
 }   
 document.getElementById("btnLimpar").addEventListener("click", () => {
   clearCanvas(gl); 
