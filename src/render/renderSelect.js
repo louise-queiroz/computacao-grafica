@@ -20,6 +20,11 @@ let objAddresses = [
     { path: "../assets/objs/wood_box.obj" },
   ];
 
+  let savedSceneState = {
+    objDataScene: [],
+    objectsOnScene: []
+  };
+
   export async function renderSelect(index) {
     objectsOnScene.push({ objAddress: objAddresses[index] });
     const objData = await loadObj(
@@ -126,8 +131,9 @@ export async function loadObj(gl, objAddress) {
 
   const cameraTarget = [0, 0, 0];
 
-  let escala = 1.2;
-  const radius = m4.length(range) * escala;
+  let scale = 1.2;
+  const radius = m4.length(range) * scale;
+  console.log(scale)
 
   const cameraPosition = m4.addVectors(cameraTarget, [0, 0, radius]);
   const zNear = radius / 100;
@@ -146,7 +152,7 @@ export async function loadObj(gl, objAddress) {
     zFar,
     range,
     radius,
-    escala,
+    scale,
     extents,
     texturesAddresses: objAddress.textures,
     indexAdress: objAddress,
@@ -179,6 +185,7 @@ export async function drawObj(gl) {
           objectOnScene.cameraTarget,
           up
         );
+        const radius = m4.length(objectOnScene.range) * objectOnScene.scale;
         const view = m4.inverse(camera);
         const sharedUniforms = {
           u_lightDirection: m4.normalize([-1, 3, 5]),
@@ -190,6 +197,7 @@ export async function drawObj(gl) {
         twgl.setUniforms(meshProgramInfo, sharedUniforms);
         let u_world = m4.yRotation(objectOnScene.yrotation ? objectOnScene.yrotation : time);
         u_world = m4.translate(u_world, ...objectOnScene.objOffset);
+        
         for (const { bufferInfo, vao, material } of objectOnScene.parts) {
           gl.bindVertexArray(vao);
           twgl.setUniforms(
@@ -209,5 +217,102 @@ export async function drawObj(gl) {
   }
   requestAnimationFrame(render);
 }
+
+
+
+
+export async function transformationOptions(buttonIndex) {
+
+  let rotation = document.getElementById("rotation")
+  let scalebtn = document.getElementById("scale")
+
+  let translationX = document.getElementById("translateXButton")
+  let translationY = document.getElementById("translateYButton")
+  let translationZ = document.getElementById("translateZButton")
+
+  rotation.onchange = function () {
+      objDataScene[buttonIndex].yrotation = rotation.value;                                                            
+  }
+
+  scalebtn.onchange = function () {
+      objDataScene[buttonIndex].scale = parseFloat(scalebtn.value)
+      console.log(objDataScene[buttonIndex].scale = parseFloat(scalebtn.value))
+  }
+
+  translationX.onchange = function () {
+    objDataScene[buttonIndex].objOffset[0] = parseFloat(translationX.value);
+  };
+  
+  translationY.onchange = function () {
+    objDataScene[buttonIndex].objOffset[1] = parseFloat(translationY.value);
+  };
+  
+  translationZ.onchange = function () {
+    objDataScene[buttonIndex].objOffset[2] = parseFloat(translationZ.value);
+  };
+
+}   
+document.getElementById("btnLimpar").addEventListener("click", () => {
+  clearCanvas(gl); // Call the clearCanvas function with the WebGL context
+});
+
+// Function to clear the canvas and save the current state
+// Function to clear the canvas and buttons
+export async function clearCanvas(gl) {
+  // Save the current state of the scene
+  savedSceneState.objDataScene = [...objDataScene];
+  savedSceneState.objectsOnScene = [...objectsOnScene];
+
+  // Clear the canvas
+  gl.clear(gl.DEPTH_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.clearColor(0, 0, 0, 0);
+  objDataScene = [];
+  objectsOnScene = [];
+
+  // Clear the buttons from the DOM
+  const buttonSelectedContainer = document.querySelector(".button-selected");
+  if (buttonSelectedContainer) {
+      buttonSelectedContainer.innerHTML = ""; // Remove all buttons
+      console.log("Buttons cleared from the DOM.");
+  } else {
+      console.error("Button container not found.");
+  }
+}
+// Function to restore the saved state of the scene
+export function restoreScene() {
+  objDataScene = [...savedSceneState.objDataScene];
+  objectsOnScene = [...savedSceneState.objectsOnScene];
+}
+
+
+// Function to save the scene as a JSON file
+function saveSceneToJSON() {
+  // Serialize the savedSceneState to a JSON string
+  restoreScene()
+  const sceneData = JSON.stringify(savedSceneState, null, 2); // Pretty-print with 2 spaces
+
+  // Create a Blob with the JSON data
+  const blob = new Blob([sceneData], { type: "application/json" });
+
+  // Create a download link
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "saved_scene.json"; // Name of the file to be downloaded
+
+  // Trigger the download
+  document.body.appendChild(a);
+  a.click();
+
+  // Clean up
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+// Add event listener to the "btnSalvar" button
+document.getElementById("btnSalvar").addEventListener("click", saveSceneToJSON);
+
 
 await drawObj(gl);
