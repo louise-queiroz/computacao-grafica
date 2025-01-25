@@ -17,8 +17,15 @@ let objAddresses = [
     { path: "../assets/objs/plate.obj" },
     { path: "../assets/objs/torch.obj" },
     { path: "../assets/objs/wine.obj" },
-    { path: "../assets/objs/wood_box.obj" },
+    { path: "../assets/objs/wood_box.obj" }
   ];
+
+
+  let objTextures = {
+    0: { path: "textura1.jpg" },
+    1: { path: "textura2.jpg" }
+};
+
 
   let savedSceneState = {
     objDataScene: [],
@@ -230,6 +237,9 @@ export async function transformationOptions(buttonIndex) {
   let translationY = document.getElementById("translateYButton")
   let translationZ = document.getElementById("translateZButton")
 
+  let texture1Btn = document.getElementById("texture1Btn");
+  let texture2Btn = document.getElementById("texture2Btn");
+
   rotation.onchange = function () {
       objDataScene[buttonIndex].yrotation = rotation.value;                                                            
   }
@@ -241,78 +251,125 @@ export async function transformationOptions(buttonIndex) {
 
   translationX.onchange = function () {
     objDataScene[buttonIndex].objOffset[0] = parseFloat(translationX.value);
-  };
+  }
   
   translationY.onchange = function () {
     objDataScene[buttonIndex].objOffset[1] = parseFloat(translationY.value);
-  };
+  }
   
   translationZ.onchange = function () {
     objDataScene[buttonIndex].objOffset[2] = parseFloat(translationZ.value);
-  };
+  }
+
+  texture1Btn.onclick = async function () {
+    objDataScene[buttonIndex].parts = await loadTexture(
+        gl,
+        objDataScene[buttonIndex].indexAdress,
+        objTextures[0].path 
+    );
+    console.log(`Textura aplicada: ${objTextures[0].path}`);
+};
+
+  texture2Btn.onclick = async function () {
+    objDataScene[buttonIndex].parts = await loadTexture(
+        gl,
+        objDataScene[buttonIndex].indexAdress,
+        objTextures[1].path
+    );
+    console.log(`Textura aplicada: ${objTextures[1].path}`);
+};
+
 
 }   
 document.getElementById("btnLimpar").addEventListener("click", () => {
-  clearCanvas(gl); // Call the clearCanvas function with the WebGL context
+  clearCanvas(gl); 
 });
 
-// Function to clear the canvas and save the current state
-// Function to clear the canvas and buttons
 export async function clearCanvas(gl) {
-  // Save the current state of the scene
   savedSceneState.objDataScene = [...objDataScene];
   savedSceneState.objectsOnScene = [...objectsOnScene];
 
-  // Clear the canvas
   gl.clear(gl.DEPTH_BUFFER_BIT);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.clearColor(0, 0, 0, 0);
   objDataScene = [];
   objectsOnScene = [];
 
-  // Clear the buttons from the DOM
   const buttonSelectedContainer = document.querySelector(".button-selected");
   if (buttonSelectedContainer) {
-      buttonSelectedContainer.innerHTML = ""; // Remove all buttons
+      buttonSelectedContainer.innerHTML = ""; 
       console.log("Buttons cleared from the DOM.");
-  } else {
-      console.error("Button container not found.");
-  }
+  } 
 }
-// Function to restore the saved state of the scene
+
 export function restoreScene() {
   objDataScene = [...savedSceneState.objDataScene];
   objectsOnScene = [...savedSceneState.objectsOnScene];
 }
 
-
-// Function to save the scene as a JSON file
+document.getElementById("btnSalvar").addEventListener("click", saveSceneToJSON);
 function saveSceneToJSON() {
-  // Serialize the savedSceneState to a JSON string
   restoreScene()
-  const sceneData = JSON.stringify(savedSceneState, null, 2); // Pretty-print with 2 spaces
+  const sceneData = JSON.stringify(savedSceneState, null, 2); 
 
-  // Create a Blob with the JSON data
   const blob = new Blob([sceneData], { type: "application/json" });
 
-  // Create a download link
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "saved_scene.json"; // Name of the file to be downloaded
-
-  // Trigger the download
+  a.download = "saved_scene.json";
   document.body.appendChild(a);
   a.click();
-
-  // Clean up
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
 
-// Add event listener to the "btnSalvar" button
-document.getElementById("btnSalvar").addEventListener("click", saveSceneToJSON);
+document.getElementById("btnCarregar").addEventListener("click", () => {
+  console.log("btnCarregar clicked");
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = ".json";
+  fileInput.addEventListener("change", loadSceneFromJSON);
+  document.body.appendChild(fileInput); // Add the file input to the DOM
+  fileInput.click();
+  document.body.removeChild(fileInput); // Remove the file input after use
+});
+function loadSceneFromJSON(event) {
+  const file = event.target.files[0];
+  if (!file) {
+      console.error("No file selected.");
+      return;
+  }
 
+  const reader = new FileReader();
+  reader.onload = (e) => {
+      try {
+          const contents = e.target.result;
+          const loadedSceneState = JSON.parse(contents);
+
+          // Validate the loaded data
+          if (!Array.isArray(loadedSceneState.objDataScene)) {
+              console.error("Invalid objDataScene:", loadedSceneState.objDataScene);
+              return;
+          }
+
+          // Restore the scene state
+          objDataScene = loadedSceneState.objDataScene;
+          objectsOnScene = loadedSceneState.objectsOnScene;
+
+          console.log("Scene loaded successfully:", loadedSceneState);
+
+          // Re-render the scene
+          drawObj(gl);
+      } catch (error) {
+          console.error("Error parsing JSON file:", error);
+      }
+  };
+  reader.onerror = (e) => {
+      console.error("Error reading file:", e.target.error);
+  };
+  reader.readAsText(file);
+}
 
 await drawObj(gl);
