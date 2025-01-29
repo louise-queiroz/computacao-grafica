@@ -144,9 +144,16 @@ body {
     margin-bottom: 20px;
   }
 
+  .texture-changing {
+    display: flex;
+    flex-direction: column; /* Faz com que os botões fiquem um abaixo do outro */
+    gap: 10px; /* Espaçamento entre os botões */
+    align-items: center; /* Centraliza os botões */
+}
+
   .texture-changing button{
       width: 100%;
-      padding: 5px;
+      padding: 10px;
       font-size: 10px;
       cursor: pointer;
       border-radius: 12px; 

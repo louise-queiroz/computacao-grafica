@@ -22,9 +22,9 @@ let objAddresses = [
 
 
   let objTextures = {
-    0: { path: "texture.jpg" },
-    1: { path: "textura1.jpg" },
-    2: { path: "textura2.jpg" }
+    0: { path: "../assets/objs/texture.png" },
+    1: { path: "../assets/objs/textura2.jpg" },
+    2: { path: "../assets/objs/textura3.jpg" }
 };
 
 
@@ -50,6 +50,8 @@ let objAddresses = [
   }
   
   async function loadTexture(gl, objAddress, urlTexture) {
+    console.log(`Loading texture from: ${urlTexture}`);
+  
     const objHref = objAddress.path;
     const response = await fetch(objHref);
     const text = await response.text();
@@ -66,68 +68,74 @@ let objAddresses = [
   
     const materials = parseMTL(matTexts.join("\n"));
   
-    const textures = {
-        defaultRed: twgl.createTexture(gl, { src: [255, 0, 0, 255] }), // Cor vermelha
-      };
-    
-        // Caminho da textura única
-        const texturePath = "../assets/objs/textura.png";
-    
-        // Carregar e aplicar a mesma textura para todos os materiais
-        for (const material of Object.values(materials)) {
-        // Cria uma textura para a textura única
-        let texture = textures[texturePath];
-        
-        if (!texture) {
-            texture = twgl.createTexture(gl, {
-            src: texturePath,
-            flipY: true,
-            });
-            textures[texturePath] = texture;
-        }
-    
-        // Aplicar a textura ao material
-        material.diffuseMap = texture;
-        material.specularMap = texture;  // Caso tenha esse tipo de mapa, aplique também.
-        material.normalMap = texture;    // Caso tenha um mapa de normal, aplique também, se necessário.
+    const textures = {};
+  
+    // Load the specified texture
+    let texture;
+    try {
+      texture = twgl.createTexture(gl, {
+        src: urlTexture,
+        flipY: true,
+      });
+      textures[urlTexture] = texture;
+      console.log(`Texture created successfully: ${urlTexture}`);
+    } catch (error) {
+      console.error(`Failed to load texture: ${urlTexture}`, error);
+  
+      // Fallback: Use the default texture (texture.png)
+      const defaultTexturePath = "../assets/objs/texture.png"; // Path to the default texture
+      console.log(`Using fallback texture: ${defaultTexturePath}`);
+      texture = twgl.createTexture(gl, {
+        src: defaultTexturePath,
+        flipY: true,
+      });
+      textures[defaultTexturePath] = texture;
     }
-  const defaultMaterial = {
-    diffuse: [1, 1, 1],
-    diffuseMap: textures.defaultWhite,
-    ambient: [0, 0, 0],
-    specular: [1, 1, 1],
-    shininess: 400,
-    opacity: 1,
-  };
-
-  const parts = obj.geometries.map(({ material, data }) => {
-    if (data.color) {
-      if (data.position.length === data.color.length) {
-        data.color = { numComponents: 3, data: data.color };
-      }
-    } else {
-      data.color = { value: [1, 1, 1, 1] };
+  
+    // Apply the texture to all materials
+    for (const material of Object.values(materials)) {
+      material.diffuseMap = texture;
+      material.specularMap = texture;  // Apply if you have specular maps
+      material.normalMap = texture;    // Apply if you have normal maps
     }
-
-    const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
-    const vao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, bufferInfo);
-    return {
-      material: {
-        ...defaultMaterial,
-        ...materials[material],
-      },
-      bufferInfo,
-      vao,
-      obj,
+  
+    const defaultMaterial = {
+      diffuse: [1, 1, 1],
+      diffuseMap: textures.defaultWhite,
+      ambient: [0, 0, 0],
+      specular: [1, 1, 1],
+      shininess: 400,
+      opacity: 1,
     };
-  });
-
-  return parts;
-}
+  
+    const parts = obj.geometries.map(({ material, data }) => {
+      if (data.color) {
+        if (data.position.length === data.color.length) {
+          data.color = { numComponents: 3, data: data.color };
+        }
+      } else {
+        data.color = { value: [1, 1, 1, 1] };
+      }
+  
+      const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
+      const vao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, bufferInfo);
+      return {
+        material: {
+          ...defaultMaterial,
+          ...materials[material],
+        },
+        bufferInfo,
+        vao,
+        obj,
+      };
+    });
+  
+    return parts;
+  }
 
 export async function loadObj(gl, objAddress) {
   twgl.setAttributePrefix("a_");
-  const parts = await loadTexture(gl, objAddress, "dungeon_texture.png");
+  const parts = await loadTexture(gl, objAddress,  "../assets/objs/texture.png");
 
   const extents = getGeometriesExtents(parts[0].obj.geometries);
   const range = m4.subtractVectors(extents.max, extents.min);
@@ -230,78 +238,81 @@ export async function drawObj(gl) {
 
 
 export async function transformationOptions(buttonIndex) {
+  // Validate buttonIndex
+  if (buttonIndex < 0 || buttonIndex >= objDataScene.length) {
+    console.error("Invalid buttonIndex:", buttonIndex);
+    return;
+  }
 
-  let rotation = document.getElementById("rotation")
-  let scalebtn = document.getElementById("scale")
+  let rotation = document.getElementById("rotation");
+  let scalebtn = document.getElementById("scale");
 
-  let translationX = document.getElementById("translateXButton")
-  let translationY = document.getElementById("translateYButton")
-  let translationZ = document.getElementById("translateZButton")
+  let translationX = document.getElementById("translateXButton");
+  let translationY = document.getElementById("translateYButton");
+  let translationZ = document.getElementById("translateZButton");
 
   let texture1Btn = document.getElementById("texture1Btn");
   let texture2Btn = document.getElementById("texture2Btn");
 
   rotation.onchange = function () {
-      objDataScene[buttonIndex].yrotation = rotation.value;                                                            
-  }
+    objDataScene[buttonIndex].yrotation = rotation.value;
+  };
 
   scalebtn.onchange = function () {
-      objDataScene[buttonIndex].scale = parseFloat(scalebtn.value)
-      console.log(objDataScene[buttonIndex].scale = parseFloat(scalebtn.value))
-  }
+    objDataScene[buttonIndex].scale = parseFloat(scalebtn.value);
+    console.log("Scale updated to:", objDataScene[buttonIndex].scale);
+  };
 
   translationX.onchange = function () {
     objDataScene[buttonIndex].objOffset[0] = parseFloat(translationX.value);
-  }
-  
+  };
+
   translationY.onchange = function () {
     objDataScene[buttonIndex].objOffset[1] = parseFloat(translationY.value);
-  }
-  
+  };
+
   translationZ.onchange = function () {
     objDataScene[buttonIndex].objOffset[2] = parseFloat(translationZ.value);
-  }
+  };
 
   texturedefaultBtn.onclick = async function () {
     objDataScene[buttonIndex].parts = await loadTexture(
-        gl,
-        objDataScene[buttonIndex].indexAdress,
-        objTextures[0].path
+      gl,
+      objDataScene[buttonIndex].indexAdress,
+      objTextures[0].path // Default texture path
     );
-    console.log(`Textura aplicada: ${objTextures[0].path}`);
-
-    texturedefaultBtn.onclick = async function () {
-      objDataScene[buttonIndex].parts = await loadTexture(
-          gl,
-          objDataScene[buttonIndex].indexAdress,
-          objTextures[0].path 
-      );
-      console.log(`Textura aplicada: ${objTextures[0].path}`);
+    console.log(`Texture applied: ${objTextures[0].path}`);
   };
 
   texture1Btn.onclick = async function () {
     objDataScene[buttonIndex].parts = await loadTexture(
-        gl,
-        objDataScene[buttonIndex].indexAdress,
-        objTextures[1].path 
+      gl,
+      objDataScene[buttonIndex].indexAdress,
+      objTextures[1].path // Texture 1 path
     );
-    console.log(`Textura aplicada: ${objTextures[1].path}`);
-};
+    console.log(`Texture applied: ${objTextures[1].path}`);
+  };
 
   texture2Btn.onclick = async function () {
     objDataScene[buttonIndex].parts = await loadTexture(
-        gl,
-        objDataScene[buttonIndex].indexAdress,
-        objTextures[2].path
+      gl,
+      objDataScene[buttonIndex].indexAdress,
+      objTextures[2].path // Texture 2 path
     );
-    console.log(`Textura aplicada: ${objTextures[2].path}`);
-};
+    console.log(`Texture applied: ${objTextures[2].path}`);
+  };
+}
 
-  }
-}   
 document.getElementById("btnLimpar").addEventListener("click", () => {
   clearCanvas(gl); 
 });
+
+function updateSavedScene() {
+  savedSceneState.objDataScene = [...objDataScene];
+  savedSceneState.objectsOnScene = [...objectsOnScene];
+
+  console.log("Scene state updated:", savedSceneState);
+}
 
 export async function clearCanvas(gl) {
   savedSceneState.objDataScene = [...objDataScene];
@@ -315,23 +326,21 @@ export async function clearCanvas(gl) {
 
   const buttonSelectedContainer = document.querySelector(".button-selected");
   if (buttonSelectedContainer) {
-      buttonSelectedContainer.innerHTML = ""; 
-      console.log("Buttons cleared from the DOM.");
-  } 
-}
-
-export function restoreScene() {
-  objDataScene = [...savedSceneState.objDataScene];
-  objectsOnScene = [...savedSceneState.objectsOnScene];
+    buttonSelectedContainer.innerHTML = "";
+    console.log("Buttons cleared from the DOM.");
+  }
 }
 
 document.getElementById("btnSalvar").addEventListener("click", saveSceneToJSON);
 function saveSceneToJSON() {
-  restoreScene()
-  const sceneData = JSON.stringify(savedSceneState, null, 2); 
+  // Update the saved scene state
+  updateSavedScene();
 
+  // Serialize the scene state to JSON
+  const sceneData = JSON.stringify(savedSceneState, null, 2);
+
+  // Create a Blob and trigger a download
   const blob = new Blob([sceneData], { type: "application/json" });
-
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -353,39 +362,49 @@ document.getElementById("btnCarregar").addEventListener("click", () => {
   fileInput.click();
   document.body.removeChild(fileInput); // Remove the file input after use
 });
-function loadSceneFromJSON(event) {
+async function loadSceneFromJSON(event) {
   const file = event.target.files[0];
   if (!file) {
-      console.error("No file selected.");
-      return;
+    console.error("No file selected.");
+    return;
   }
 
   const reader = new FileReader();
-  reader.onload = (e) => {
-      try {
-          const contents = e.target.result;
-          const loadedSceneState = JSON.parse(contents);
+  reader.onload = async (e) => {
+    try {
+      const contents = e.target.result;
+      const loadedSceneState = JSON.parse(contents);
 
-          // Validate the loaded data
-          if (!Array.isArray(loadedSceneState.objDataScene)) {
-              console.error("Invalid objDataScene:", loadedSceneState.objDataScene);
-              return;
-          }
-
-          // Restore the scene state
-          objDataScene = loadedSceneState.objDataScene;
-          objectsOnScene = loadedSceneState.objectsOnScene;
-
-          console.log("Scene loaded successfully:", loadedSceneState);
-
-          // Re-render the scene
-          drawObj(gl);
-      } catch (error) {
-          console.error("Error parsing JSON file:", error);
+      // Validate the loaded data
+      if (!Array.isArray(loadedSceneState.objDataScene)) {
+        console.error("Invalid objDataScene:", loadedSceneState.objDataScene);
+        return;
       }
+
+      // Clear the current scene
+      clearCanvas(gl);
+
+      // Restore the scene state
+      objDataScene = [];
+      objectsOnScene = [];
+
+      // Recreate the objects and their WebGL resources
+      for (const obj of loadedSceneState.objectsOnScene) {
+        const objData = await loadObj(gl, obj.objAddress);
+        objectsOnScene.push({ objAddress: obj.objAddress, objData });
+        objDataScene.push(objData);
+      }
+
+      console.log("Scene loaded successfully:", loadedSceneState);
+
+      // Re-render the scene
+      drawObj(gl);
+    } catch (error) {
+      console.error("Error parsing JSON file:", error);
+    }
   };
   reader.onerror = (e) => {
-      console.error("Error reading file:", e.target.error);
+    console.error("Error reading file:", e.target.error);
   };
   reader.readAsText(file);
 }
