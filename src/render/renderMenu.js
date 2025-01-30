@@ -141,39 +141,8 @@ async function loadObj(gl, objAddress) {
   return { parts, meshProgramInfo, objOffset, cameraPosition, cameraTarget, zNear, zFar };
 }
 
-function drawObj(gl, { parts, meshProgramInfo, objOffset, cameraPosition, cameraTarget, zNear, zFar }) {
+ function drawObj(gl, { parts, meshProgramInfo, objOffset, cameraPosition, cameraTarget, zNear, zFar }) {
   function render(time) {
-    time *= 0.001; 
-
-    twgl.resizeCanvasToDisplaySize(gl.canvas);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.enable(gl.DEPTH_TEST);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.clearColor(0, 0, 0, 0);
-
-    const fieldOfViewRadians = degToRad(60);
-    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    const projection = m4.perspective(
-      fieldOfViewRadians,
-      aspect,
-      zNear,
-      zFar
-    );
-
-    const up = [0, 1, 0];
-    const camera = m4.lookAt(cameraPosition, cameraTarget, up);
-    const view = m4.inverse(camera);
-
-    const sharedUniforms = {
-      u_lightDirections: m4.normalize([-1, 3, 5]),
-      u_view: view,
-      u_projection: projection,
-      u_viewWorldPosition: cameraPosition,
-      u_lightStates: [1],
-    };
-    function render(time) {
-      if (objDataScene.length !== 0) {
           time *= 0;
           twgl.resizeCanvasToDisplaySize(gl.canvas);
           gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -184,44 +153,35 @@ function drawObj(gl, { parts, meshProgramInfo, objOffset, cameraPosition, camera
           const fieldOfViewRadians = degToRad(60);
           const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
   
-          for (const objectOnScene of objDataScene) {
-              console.log("Rendering object:", objectOnScene); // Debug log
-  
               const projection = m4.perspective(
                   fieldOfViewRadians,
                   aspect,
-                  objectOnScene.zNear,
-                  objectOnScene.zFar
+                  zNear,
+                  zFar
               );
               const up = [0, 1, 0];
               const camera = m4.lookAt(
-                  objectOnScene.cameraPosition,
-                  objectOnScene.cameraTarget,
+                  cameraPosition,
+                  cameraTarget,
                   up
               );
-              const radius = m4.length(objectOnScene.range) * objectOnScene.scale;
               const view = m4.inverse(camera);
+
               const sharedUniforms = {
-                  u_lightDirection: m4.normalize([-1, 3, 5]),
-                  u_view: view,
-                  u_projection: projection,
-                  u_viewWorldPosition: objectOnScene.cameraPosition,
+                u_lightDirections: m4.normalize([-1, 3, 5]),
+                u_view: view,
+                u_projection: projection,
+                u_viewWorldPosition: cameraPosition,
+                u_lightStates: [1],
               };
+
               gl.useProgram(meshProgramInfo.program);
               twgl.setUniforms(meshProgramInfo, sharedUniforms);
+
+              let u_world = m4.yRotation(time);
+              u_world = m4.translate(u_world, ...objOffset);
   
-              // Create a scaling matrix
-              const scaleMatrix = m4.scaling([objectOnScene.scale, objectOnScene.scale, objectOnScene.scale]);
-  
-              // Apply transformations in the correct order: scale -> rotate -> translate
-              let u_world = m4.identity(); // Start with an identity matrix
-              u_world = m4.multiply(u_world, scaleMatrix); // Apply scale
-              u_world = m4.multiply(u_world, m4.yRotation(objectOnScene.yrotation || time)); // Apply rotation
-              u_world = m4.translate(u_world, ...objectOnScene.objOffset); // Apply translation
-  
-              for (const { bufferInfo, vao, material } of objectOnScene.parts) {
-                  console.log("Rendering part:", bufferInfo, vao, material); // Debug log
-  
+              for (const { bufferInfo, vao, material } of parts) {
                   gl.bindVertexArray(vao);
                   twgl.setUniforms(
                       meshProgramInfo,
@@ -232,33 +192,9 @@ function drawObj(gl, { parts, meshProgramInfo, objOffset, cameraPosition, camera
                   );
                   twgl.drawBufferInfo(gl, bufferInfo);
               }
+              requestAnimationFrame(render);
           }
           requestAnimationFrame(render);
-      } else {
-          requestAnimationFrame(render);
-      }
   }
-    gl.useProgram(meshProgramInfo.program);
-    twgl.setUniforms(meshProgramInfo, sharedUniforms);
-    
-    let u_world = m4.yRotation(time);
-    u_world = m4.translate(u_world, ...objOffset);
-
-    for (const { bufferInfo, vao, material } of parts) {
-   
-      gl.bindVertexArray(vao);
-      twgl.setUniforms(
-        meshProgramInfo,
-        {
-          u_world,
-        },
-        material
-      );
-      twgl.drawBufferInfo(gl, bufferInfo);
-    }
-    requestAnimationFrame(render);
-  }
-  requestAnimationFrame(render);
-}
 
 renderMenu();

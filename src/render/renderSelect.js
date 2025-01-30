@@ -50,7 +50,6 @@ let objAddresses = [
   }
   
   async function loadTexture(gl, objAddress, urlTexture) {
-    console.log(`Loading texture from: ${urlTexture}`);
   
     const objHref = objAddress.path;
     const response = await fetch(objHref);
@@ -72,25 +71,19 @@ let objAddresses = [
   
     // Load the specified texture
     let texture;
-    try {
       texture = twgl.createTexture(gl, {
         src: urlTexture,
         flipY: true,
       });
       textures[urlTexture] = texture;
-      console.log(`Texture created successfully: ${urlTexture}`);
-    } catch (error) {
-      console.error(`Failed to load texture: ${urlTexture}`, error);
   
       // Fallback: Use the default texture (texture.png)
       const defaultTexturePath = "../assets/objs/texture.png"; // Path to the default texture
-      console.log(`Using fallback texture: ${defaultTexturePath}`);
       texture = twgl.createTexture(gl, {
         src: defaultTexturePath,
         flipY: true,
       });
       textures[defaultTexturePath] = texture;
-    }
   
     // Apply the texture to all materials
     for (const material of Object.values(materials)) {
@@ -238,7 +231,6 @@ export async function drawObj(gl) {
 
 
 export async function transformationOptions(buttonIndex) {
-  // Validate buttonIndex
   if (buttonIndex < 0 || buttonIndex >= objDataScene.length) {
     console.error("Invalid buttonIndex:", buttonIndex);
     return;
@@ -254,25 +246,44 @@ export async function transformationOptions(buttonIndex) {
   let texture1Btn = document.getElementById("texture1Btn");
   let texture2Btn = document.getElementById("texture2Btn");
 
+  objDataScene[buttonIndex].buttonData = {
+    rotation: rotation.value,
+    scale: parseFloat(scalebtn.value),
+    translation: [
+      parseFloat(translationX.value),
+      parseFloat(translationY.value),
+      parseFloat(translationZ.value),
+    ],
+    texture: objTextures[0].path, // Definir textura padrão
+  };
+
   rotation.onchange = function () {
     objDataScene[buttonIndex].yrotation = rotation.value;
+    objDataScene[buttonIndex].buttonData.rotation = rotation.value;
   };
 
   scalebtn.onchange = function () {
     objDataScene[buttonIndex].scale = parseFloat(scalebtn.value);
     console.log("Scale updated to:", objDataScene[buttonIndex].scale);
+    objDataScene[buttonIndex].buttonData.scale = parseFloat(scalebtn.value);
   };
+
+
 
   translationX.onchange = function () {
     objDataScene[buttonIndex].objOffset[0] = parseFloat(translationX.value);
+    objDataScene[buttonIndex].buttonData.translation[0] = parseFloat(translationX.value);
+
   };
 
   translationY.onchange = function () {
     objDataScene[buttonIndex].objOffset[1] = parseFloat(translationY.value);
+    objDataScene[buttonIndex].buttonData.translation[1] = parseFloat(translationY.value);
   };
 
   translationZ.onchange = function () {
     objDataScene[buttonIndex].objOffset[2] = parseFloat(translationZ.value);
+    objDataScene[buttonIndex].buttonData.translation[2] = parseFloat(translationZ.value);
   };
 
   texturedefaultBtn.onclick = async function () {
@@ -281,6 +292,7 @@ export async function transformationOptions(buttonIndex) {
       objDataScene[buttonIndex].indexAdress,
       objTextures[0].path // Default texture path
     );
+    objDataScene[buttonIndex].buttonData.texture = objTextures[0].path;
     console.log(`Texture applied: ${objTextures[0].path}`);
   };
 
@@ -290,7 +302,7 @@ export async function transformationOptions(buttonIndex) {
       objDataScene[buttonIndex].indexAdress,
       objTextures[1].path // Texture 1 path
     );
-    console.log(`Texture applied: ${objTextures[1].path}`);
+    objDataScene[buttonIndex].buttonData.texture = objTextures[1].path;
   };
 
   texture2Btn.onclick = async function () {
@@ -299,7 +311,7 @@ export async function transformationOptions(buttonIndex) {
       objDataScene[buttonIndex].indexAdress,
       objTextures[2].path // Texture 2 path
     );
-    console.log(`Texture applied: ${objTextures[2].path}`);
+    objDataScene[buttonIndex].buttonData.texture = objTextures[2].path;
   };
 }
 
@@ -332,14 +344,12 @@ export async function clearCanvas(gl) {
 }
 
 document.getElementById("btnSalvar").addEventListener("click", saveSceneToJSON);
+
 function saveSceneToJSON() {
-  // Update the saved scene state
   updateSavedScene();
 
-  // Serialize the scene state to JSON
   const sceneData = JSON.stringify(savedSceneState, null, 2);
 
-  // Create a Blob and trigger a download
   const blob = new Blob([sceneData], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -362,51 +372,96 @@ document.getElementById("btnCarregar").addEventListener("click", () => {
   fileInput.click();
   document.body.removeChild(fileInput); // Remove the file input after use
 });
+
+
+function loadButtonsFromJSON(loadedSceneState) {
+  const buttonSelectedContainer = document.querySelector(".button-selected");
+  
+  if (!Array.isArray(loadedSceneState.objDataScene)) {
+      console.error("❌ Erro: objDataScene não é um array válido.");
+      return;
+  }
+
+  // ✅ Limpa os botões antes de recarregar
+  buttonSelectedContainer.innerHTML = "";
+
+  // ✅ Recria os botões baseados nos objetos salvos
+  loadedSceneState.objDataScene.forEach((obj, index) => {
+      const titles = [
+          "Barril", "Cama", "Estante", "Tigela", "Vela",
+          "Frasco", "Prato", "Tocha", "Vinho", "Caixa"
+      ];
+      const title = titles[index] || `Objeto ${index}`;
+
+      const newButton = document.createElement("button");
+      newButton.textContent = title;
+      
+      newButton.addEventListener("click", function () {
+          console.log("🔘 Botão clicado, índice:", index);
+          transformationOptions(index);
+          document.querySelectorAll(".button-selected button").forEach(btn => btn.classList.remove("button-selected"));
+          newButton.classList.add("button-selected");
+      });
+
+      buttonSelectedContainer.appendChild(newButton);
+      console.log("✅ Botão recriado:", title);
+  });
+
+  console.log("🎉 Todos os botões foram carregados!");
+}
+
 async function loadSceneFromJSON(event) {
   const file = event.target.files[0];
   if (!file) {
-    console.error("No file selected.");
-    return;
+      console.error("❌ Nenhum arquivo selecionado.");
+      return;
   }
 
   const reader = new FileReader();
   reader.onload = async (e) => {
-    try {
-      const contents = e.target.result;
-      const loadedSceneState = JSON.parse(contents);
+      try {
+          const contents = e.target.result;
+          const loadedSceneState = JSON.parse(contents);
 
-      // Validate the loaded data
-      if (!Array.isArray(loadedSceneState.objDataScene)) {
-        console.error("Invalid objDataScene:", loadedSceneState.objDataScene);
-        return;
+          console.log("📂 Dados carregados do JSON:", loadedSceneState);
+
+          if (!Array.isArray(loadedSceneState.objDataScene)) {
+              console.error("❌ Erro: Estrutura do JSON inválida.");
+              return;
+          }
+
+          await clearCanvas(gl);
+          objDataScene = [];
+          objectsOnScene = [];
+
+          for (const obj of loadedSceneState.objectsOnScene) {
+              const objData = await loadObj(gl, obj.objAddress);
+              if (!objData) {
+                  console.error("❌ Erro ao carregar o objeto:", obj.objAddress);
+                  continue;
+              }
+              objDataScene.push({ ...objData, ...obj });
+              objectsOnScene.push({ objAddress: obj.objAddress, objData });
+          }
+
+          console.log("🎉 Cena carregada com sucesso!");
+
+          // ✅ Chama a função para recriar os botões
+          loadButtonsFromJSON(loadedSceneState);
+
+          // ✅ Re-renderiza a cena
+          drawObj(gl);
+      } catch (error) {
+          console.error("❌ Erro ao processar o arquivo JSON:", error);
       }
-
-      // Clear the current scene
-      clearCanvas(gl);
-
-      // Restore the scene state
-      objDataScene = [];
-      objectsOnScene = [];
-
-      // Recreate the objects and their WebGL resources
-      for (const obj of loadedSceneState.objectsOnScene) {
-        const objData = await loadObj(gl, obj.objAddress);
-        objectsOnScene.push({ objAddress: obj.objAddress, objData });
-        objDataScene.push(objData);
-      }
-
-      console.log("Scene loaded successfully:", loadedSceneState);
-
-      // Re-render the scene
-      drawObj(gl);
-    } catch (error) {
-      console.error("Error parsing JSON file:", error);
-    }
   };
+
   reader.onerror = (e) => {
-    console.error("Error reading file:", e.target.error);
+      console.error("❌ Erro ao ler o arquivo:", e.target.error);
   };
+
   reader.readAsText(file);
 }
+
 
 await drawObj(gl);

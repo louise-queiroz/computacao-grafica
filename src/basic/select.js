@@ -4,7 +4,6 @@ import { transformationOptions } from "../render/renderSelect.js";
 document.addEventListener("DOMContentLoaded", async function () {
     const canvases = document.querySelectorAll(".box-models");
     const buttonSelectedContainer = document.querySelector(".button-selected");
-
     let buttonIndex = 0;
 
     canvases.forEach(function (canvas, index) {
