@@ -23,24 +23,27 @@
 
         <div class="transformation-editing">
             <label for="rotation">Rotação</label>
-            <input id="rotation" type="range" step="0.1" value="5" min="0" max="10">
-
+            <input id="rotation" type="range" step="0.01" value="0" min="0" max="10"> <!-- Smaller step -->
+          
             <label for="scale">Escala</label>
-            <input id="scale" type="range" step="0.1" value="5" min="0" max="10">
-
+            <input id="scale" type="range" step="0.01" value="1" min="0.1" max="10"> <!-- Smaller step -->
+          
             <label for="translation">Translação</label>
             <div class="botton-translation">
-                <div class="botton-txyz">
-                    <p>X:</p><input id="translateXButton" type="range" step="0.1" value="0" min="-5" max="5">
-                </div>
-                <div class="botton-txyz">
-                    <p>Y:</p><input id="translateYButton" type="range" step="0.1" value="0" min="-5" max="5">
-                </div>
-                <div class="botton-txyz">
-                    <p>Z:</p><input id="translateZButton" type="range" step="0.1" value="0" min="-5" max="5">
-                </div>
+              <div class="botton-txyz">
+                <p>X:</p>
+                <input id="translateXButton" type="range" step="0.01" value="0" min="-5" max="5"> <!-- Smaller step -->
+              </div>
+              <div class="botton-txyz">
+                <p>Y:</p>
+                <input id="translateYButton" type="range" step="0.1" value="0" min="-2" max="2"> <!-- Smaller step -->
+              </div>
+              <div class="botton-txyz">
+                <p>Z:</p>
+                <input id="translateZButton" type="range" step="0.1" value="0" min="-2" max="2"> <!-- Smaller step -->
+              </div>
             </div>
-        </div>
+          </div>
         <div class="texture-changing">
             <button id="texturedefaultBtn" class="texture-btn">Textura Original</button>
             <button id="texture1Btn" class="texture-btn">Textura 1</button>

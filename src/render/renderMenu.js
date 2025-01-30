@@ -63,15 +63,12 @@ async function loadObj(gl, objAddress) {
   const materials = parseMTL(matTexts.join("\n"));
 
   const textures = {
-    defaultRed: twgl.createTexture(gl, { src: [255, 0, 0, 255] }), // Cor vermelha
+    defaultRed: twgl.createTexture(gl, { src: [255, 0, 0, 255] }), 
   };
 
-    // Caminho da textura única
     const texturePath = "../assets/objs/textura.png";
 
-    // Carregar e aplicar a mesma textura para todos os materiais
     for (const material of Object.values(materials)) {
-    // Cria uma textura para a textura única
     let texture = textures[texturePath];
     
     if (!texture) {
@@ -84,8 +81,8 @@ async function loadObj(gl, objAddress) {
 
     // Aplicar a textura ao material
     material.diffuseMap = texture;
-    material.specularMap = texture;  // Caso tenha esse tipo de mapa, aplique também.
-    material.normalMap = texture;    // Caso tenha um mapa de normal, aplique também, se necessário.
+    material.specularMap = texture;  
+    material.normalMap = texture;  
 }
 
 

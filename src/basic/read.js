@@ -4,10 +4,8 @@ export function parseOBJ(text) {
   const objNormals = [[0, 0, 0]];
   const objColors = [[0, 0, 0]];
 
-  //Array retorna os dados do objetos
   const objVertexData = [objPositions, objTexcoords, objNormals, objColors];
 
-  // arrays para armazenar os dados convertidos pro webgl
   let webglVertexData = [
     [], // positions
     [], // texcoords
@@ -16,11 +14,11 @@ export function parseOBJ(text) {
   ];
 
   const materialLibs = []; // lista de arquivos .mtl a serem carregados
-  const geometries = []; // lista de geometrias
-  let geometry; // verifica se a geometria já existe
-  let groups = ["default"]; // verifica se o grupo já existe
-  let material = "default"; // verifica se o material já existe
-  let object = "default"; // verifica se o objeto já existe
+  const geometries = [];
+  let geometry; 
+  let groups = ["default"]; 
+  let material = "default";
+  let object = "default"; 
 
   const noop = () => {};
 
@@ -31,7 +29,7 @@ export function parseOBJ(text) {
     }
   }
 
-  // define a geometria atual se não existir.
+  // define a geometria atual se não existir
   function setGeometry() {
     if (!geometry) {
       const position = [];
@@ -54,7 +52,6 @@ export function parseOBJ(text) {
     }
   }
 
-  // adiciona um vértice aos arrays WebGL convertidos.
   function addVertex(vert) {
     const ptn = vert.split("/");
     ptn.forEach((objIndexStr, i) => {
@@ -64,8 +61,6 @@ export function parseOBJ(text) {
       const objIndex = parseInt(objIndexStr);
       const index = objIndex + (objIndex >= 0 ? 0 : objVertexData[i].length);
       webglVertexData[i].push(...objVertexData[i][index]);
-      // se este é o índice da posição (índice 0) e já analisamos
-      // as cores dos vértices, então copie as cores dos vértices para os dados de cor do vértice WebGL
       if (i === 0 && objColors.length > 1) {
         geometry.data.color.push(...objColors[index]);
       }
@@ -75,9 +70,7 @@ export function parseOBJ(text) {
   // conjunto de palavras-chave que podem ser encontradas em um arquivo .obj
   const keywords = {
     v(parts) {
-      // v = vértice
       if (parts.length > 3) {
-        // há cores
         objPositions.push(parts.slice(0, 3).map(parseFloat));
         objColors.push(parts.slice(3).map(parseFloat));
       } else {
@@ -85,15 +78,12 @@ export function parseOBJ(text) {
       }
     },
     vn(parts) {
-      // vn = normal do vértice
       objNormals.push(parts.map(parseFloat));
     },
     vt(parts) {
-      // vt = coordenada de textura
       objTexcoords.push(parts.map(parseFloat));
     },
     f(parts) {
-      // f = face
       setGeometry();
       const numTriangles = parts.length - 2;
       for (let tri = 0; tri < numTriangles; ++tri) {
@@ -102,13 +92,11 @@ export function parseOBJ(text) {
         addVertex(parts[tri + 2]);
       }
     },
-    s: noop, // s = suavização
+    s: noop, 
     mtllib(parts, unparsedArgs) {
-      // inclusão de arquivos de material
       materialLibs.push(unparsedArgs);
     },
     usemtl(parts, unparsedArgs) {
-      // uso de material
       material = unparsedArgs;
       newGeometry();
     },
@@ -122,14 +110,14 @@ export function parseOBJ(text) {
     },
   };
 
-  const keywordRE = /(\w*)(?: )*(.*)/; // expressão regular para analisar cada linha
-  const lines = text.split("\n"); // divide o texto em linhas
+  const keywordRE = /(\w*)(?: )*(.*)/;
+  const lines = text.split("\n"); 
   for (let lineNo = 0; lineNo < lines.length; ++lineNo) {
-    const line = lines[lineNo].trim(); // remove espaços em branco
+    const line = lines[lineNo].trim();
     if (line === "" || line.startsWith("#")) {
       continue;
     }
-    const m = keywordRE.exec(line); // executa a expressão regular para extrair a palavra-chave e os argumentos
+    const m = keywordRE.exec(line); 
     if (!m) {
       continue;
     }
@@ -137,13 +125,12 @@ export function parseOBJ(text) {
     const parts = line.split(/\s+/).slice(1);
     const handler = keywords[keyword];
     if (!handler) {
-      console.warn("unhandled keyword:", keyword); // eslint-disable-line no-console
+      console.warn("unhandled keyword:", keyword); 
       continue;
     }
     handler(parts, unparsedArgs);
   }
 
-  // remove quaisquer arrays que não tenham entradas.
   for (const geometry of geometries) {
     geometry.data = Object.fromEntries(
       Object.entries(geometry.data).filter(([, array]) => array.length > 0)
@@ -220,7 +207,7 @@ export function parseMTL(text) {
     const parts = line.split(/\s+/).slice(1);
     const handler = keywords[keyword];
     if (!handler) {
-      console.warn("unhandled keyword:", keyword); // eslint-disable-line no-console
+      console.warn("unhandled keyword:", keyword); 
       continue;
     }
     handler(parts, unparsedArgs);
