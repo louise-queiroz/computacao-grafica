@@ -50,121 +50,130 @@ let objAddresses = [
   }
   
   async function loadTexture(gl, objAddress, urlTexture) {
-    const objHref = objAddress.path;
-    const response = await fetch(objHref);
-    const text = await response.text();
-    const obj = parseOBJ(text);
+    try {
+      const objHref = objAddress.path;
+      const response = await fetch(objHref);
+      if (!response.ok) throw new Error(`Failed to fetch ${objHref}`);
+      const text = await response.text();
+      const obj = parseOBJ(text);
   
-    const baseHref = new URL(objHref, window.location.href);
-    const matTexts = await Promise.all(
-      obj.materialLibs.map(async (filename) => {
-        const matHref = new URL(filename, baseHref).href;
-        const response = await fetch(matHref);
-        return await response.text();
-      })
-    );
+      const baseHref = new URL(objHref, window.location.href);
+      const matTexts = await Promise.all(
+        obj.materialLibs.map(async (filename) => {
+          const matHref = new URL(filename, baseHref).href;
+          const response = await fetch(matHref);
+          if (!response.ok) throw new Error(`Failed to fetch ${matHref}`);
+          return await response.text();
+        })
+      );
   
-    const materials = parseMTL(matTexts.join("\n"));
+      const materials = parseMTL(matTexts.join("\n"));
   
-    const texture = twgl.createTexture(gl, {
-      src: urlTexture,
-      flipY: true,
-    });
+      const texture = twgl.createTexture(gl, {
+        src: urlTexture,
+        flipY: true,
+      });
   
-    for (const material of Object.values(materials)) {
-      material.diffuseMap = texture;
-      material.specularMap = texture;
-      material.normalMap = texture;
-    }
-  
-    const defaultMaterial = {
-      diffuse: [1, 1, 1],
-      diffuseMap: texture,
-      ambient: [0, 0, 0],
-      specular: [1, 1, 1],
-      shininess: 400,
-      opacity: 1,
-    };
-  
-    const parts = obj.geometries.map(({ material, data }) => {
-      if (data.color) {
-        if (data.position.length === data.color.length) {
-          data.color = { numComponents: 3, data: data.color };
-        }
-      } else {
-        data.color = { value: [1, 1, 1, 1] };
+      for (const material of Object.values(materials)) {
+        material.diffuseMap = texture;
+        material.specularMap = texture;
+        material.normalMap = texture;
       }
   
-      const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
-      const vao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, bufferInfo);
-      return {
-        material: {
-          ...defaultMaterial,
-          ...materials[material],
-        },
-        bufferInfo,
-        vao,
-        obj,
+      const defaultMaterial = {
+        diffuse: [1, 1, 1],
+        diffuseMap: texture,
+        ambient: [0, 0, 0],
+        specular: [1, 1, 1],
+        shininess: 400,
+        opacity: 1,
       };
-    });
   
-    return parts;
+      const parts = obj.geometries.map(({ material, data }) => {
+        if (data.color) {
+          if (data.position.length === data.color.length) {
+            data.color = { numComponents: 3, data: data.color };
+          }
+        } else {
+          data.color = { value: [1, 1, 1, 1] };
+        }
+  
+        const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
+        const vao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, bufferInfo);
+        return {
+          material: {
+            ...defaultMaterial,
+            ...materials[material],
+          },
+          bufferInfo,
+          vao,
+          obj,
+        };
+      });
+  
+      return parts;
+    } catch (error) {
+      console.error("Error loading texture:", error);
+      return null;
+    }
   }
-  export async function loadObj(gl, objAddress) {
-  twgl.setAttributePrefix("a_");
-  const parts = await loadTexture(gl, objAddress,  "../assets/objs/texture.png");
-
-  const extents = getGeometriesExtents(parts[0].obj.geometries);
-  const range = m4.subtractVectors(extents.max, extents.min);
-
-  const objOffset = m4.scaleVector(
-    m4.addVectors(extents.min, m4.scaleVector(range, 0.5)),
-    -1
-  );
-
-  const cameraTarget = [0, 0, 0];
-
-  let scale = 1.2;
-  const radius = m4.length(range) * scale;
-  console.log(scale)
-
-  const cameraPosition = m4.addVectors(cameraTarget, [0, 0, radius]);
-  const zNear = radius / 100;
-  const zFar = radius * 3;
-
-  let u_lightDirections = [m4.normalize([-1, 3, 5])
-];
-
-  return {
-    parts,
-    meshProgramInfo,
-    objOffset,
-    cameraPosition,
-    cameraTarget,
-    zNear,
-    zFar,
-    range,
-    radius,
-    scale,
-    extents,
-    texturesAddresses: objAddress.textures,
-    indexAdress: objAddress,
-    u_lightDirections,
-  };
-}
+  
+  export async function loadObj(gl, objAddress, options = {}) {
+    twgl.setAttributePrefix("a_");
+    const parts = await loadTexture(gl, objAddress, "../assets/objs/texture.png");
+  
+    const extents = getGeometriesExtents(parts[0].obj.geometries);
+    const range = m4.subtractVectors(extents.max, extents.min);
+  
+    // Use the saved position if provided, otherwise center the object
+    const objOffset = options.objOffset || m4.scaleVector(
+      m4.addVectors(extents.min, m4.scaleVector(range, 0.5)),
+      -1
+    );
+  
+    const cameraTarget = [0, 0, 0];
+  
+    let scale = options.scale || 1.2; // Use the saved scale if provided
+  
+    const radius = m4.length(range) * scale;
+    console.log(scale);
+  
+    const cameraPosition = m4.addVectors(cameraTarget, [0, 0, radius]);
+    const zNear = radius / 100;
+    const zFar = radius * 3;
+  
+    let u_lightDirections = [m4.normalize([-1, 3, 5])];
+  
+    return {
+      parts,
+      meshProgramInfo,
+      objOffset,
+      cameraPosition,
+      cameraTarget,
+      zNear,
+      zFar,
+      range,
+      radius,
+      scale,
+      extents,
+      texturesAddresses: objAddress.textures,
+      indexAdress: objAddress,
+      u_lightDirections,
+      yrotation: options.yrotation || 0, // Use the saved rotation if provided
+    };
+  }
 
 export async function drawObj(gl) {
   function render(time) {
-    if (objDataScene.length != 0) {
-      time *= 0;
+    if (objDataScene.length !== 0) {
       twgl.resizeCanvasToDisplaySize(gl.canvas);
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
       gl.enable(gl.DEPTH_TEST);
-      gl.clear(gl.DEPTH_BUFFER_BIT);
-      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
       gl.clearColor(0, 0, 0, 0);
       const fieldOfViewRadians = degToRad(60);
       const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+
       for (const objectOnScene of objDataScene) {
         const projection = m4.perspective(
           fieldOfViewRadians,
@@ -188,9 +197,10 @@ export async function drawObj(gl) {
         };
         gl.useProgram(meshProgramInfo.program);
         twgl.setUniforms(meshProgramInfo, sharedUniforms);
-        let u_world = m4.yRotation(objectOnScene.yrotation ? objectOnScene.yrotation : time);
+
+        let u_world = m4.yRotation(objectOnScene.yrotation || 0);
+        u_world = m4.scale(u_world, objectOnScene.scale, objectOnScene.scale, objectOnScene.scale);
         u_world = m4.translate(u_world, ...objectOnScene.objOffset);
-        
         for (const { bufferInfo, vao, material } of objectOnScene.parts) {
           gl.bindVertexArray(vao);
           twgl.setUniforms(
@@ -210,9 +220,6 @@ export async function drawObj(gl) {
   }
   requestAnimationFrame(render);
 }
-
-
-
 
 export async function transformationOptions(buttonIndex) {
   if (buttonIndex < 0 || buttonIndex >= objDataScene.length) {
@@ -266,29 +273,45 @@ export async function transformationOptions(buttonIndex) {
     objDataScene[buttonIndex].objOffset[2] = parseFloat(translationZ.value);
     objDataScene[buttonIndex].buttonData.translation[2] = parseFloat(translationZ.value);
   };
+  
+  texturedefaultBtn.onclick = async function () {
+    const newParts = await loadTexture(
+      gl,
+      objDataScene[buttonIndex].indexAdress,
+      objTextures[0].path
+    );
+    if (newParts) {
+      objDataScene[buttonIndex].parts = newParts;
+      objDataScene[buttonIndex].buttonData.texture = objTextures[0].path;
+    }
+  };
+  
 
   texture1Btn.onclick = async function () {
-    objDataScene[buttonIndex].parts = await loadTexture(
+    const newParts = await loadTexture(
       gl,
       objDataScene[buttonIndex].indexAdress,
       objTextures[1].path
     );
-    objDataScene[buttonIndex].buttonData.texture = objTextures[1].path;
-    console.log(`Texture applied: ${objTextures[1].path}`);
-    drawObj(gl); // Re-render the scene
+    if (newParts) {
+      objDataScene[buttonIndex].parts = newParts;
+      objDataScene[buttonIndex].buttonData.texture = objTextures[1].path;
+    }
   };
-
+  
   texture2Btn.onclick = async function () {
-    objDataScene[buttonIndex].parts = await loadTexture(
+    const newParts = await loadTexture(
       gl,
       objDataScene[buttonIndex].indexAdress,
       objTextures[2].path
     );
-    objDataScene[buttonIndex].buttonData.texture = objTextures[2].path;
-    console.log(`Texture applied: ${objTextures[2].path}`);
-    drawObj(gl); // Re-render the scene
+    if (newParts) {
+      objDataScene[buttonIndex].parts = newParts;
+      objDataScene[buttonIndex].buttonData.texture = objTextures[2].path;
+    }
   };
 }
+
 document.getElementById("btnLimpar").addEventListener("click", () => {
   clearCanvas(gl); 
 });
@@ -303,9 +326,14 @@ function updateSavedScene() {
 export async function clearCanvas(gl) {
   savedSceneState.objDataScene = [...objDataScene];
   savedSceneState.objectsOnScene = [...objectsOnScene];
+  objDataScene.forEach(obj => {
+    obj.parts.forEach(part => {
+      gl.deleteBuffer(part.bufferInfo.attribs.a_position.buffer);
+      gl.deleteVertexArray(part.vao);
+    });
+  });
 
-  gl.clear(gl.DEPTH_BUFFER_BIT);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
   gl.clearColor(0, 0, 0, 0);
   objDataScene = [];
   objectsOnScene = [];
@@ -320,10 +348,17 @@ export async function clearCanvas(gl) {
 document.getElementById("btnSalvar").addEventListener("click", saveSceneToJSON);
 
 function saveSceneToJSON() {
-  updateSavedScene();
+  savedSceneState.objDataScene = objDataScene.map(obj => ({
+    ...obj,
+    yrotation: obj.yrotation || 0,
+    scale: obj.scale || 1,
+    objOffset: obj.objOffset || [0, 0, 0],
+  }));
+  savedSceneState.objectsOnScene = objectsOnScene;
+
+  console.log("Saved Scene State:", savedSceneState);
 
   const sceneData = JSON.stringify(savedSceneState, null, 2);
-
   const blob = new Blob([sceneData], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -334,8 +369,6 @@ function saveSceneToJSON() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-
 document.getElementById("btnCarregar").addEventListener("click", () => {
   console.log("btnCarregar clicked");
   const fileInput = document.createElement("input");
@@ -346,7 +379,6 @@ document.getElementById("btnCarregar").addEventListener("click", () => {
   fileInput.click();
   document.body.removeChild(fileInput); 
 });
-
 
 
 function loadButtonsFromJSON(loadedSceneState) {
@@ -386,49 +418,62 @@ function loadButtonsFromJSON(loadedSceneState) {
 async function loadSceneFromJSON(event) {
   const file = event.target.files[0];
   if (!file) {
-      console.error("Nenhum arquivo selecionado.");
-      return;
+    console.error("Nenhum arquivo selecionado.");
+    return;
   }
 
   const reader = new FileReader();
   reader.onload = async (e) => {
-      try {
-          const contents = e.target.result;
-          const loadedSceneState = JSON.parse(contents);
+    try {
+      const contents = e.target.result;
+      const loadedSceneState = JSON.parse(contents);
 
-          console.log(" Dados carregados do JSON:", loadedSceneState);
+      console.log("Dados carregados do JSON:", loadedSceneState);
 
-          if (!Array.isArray(loadedSceneState.objDataScene)) {
-              console.error(" Erro: Estrutura do JSON inválida.");
-              return;
-          }
-
-          await clearCanvas(gl);
-          objDataScene = [];
-          objectsOnScene = [];
-
-          for (const obj of loadedSceneState.objectsOnScene) {
-              const objData = await loadObj(gl, obj.objAddress);
-              if (!objData) {
-                  console.error(" Erro ao carregar o objeto:", obj.objAddress);
-                  continue;
-              }
-              objDataScene.push({ ...objData, ...obj });
-              objectsOnScene.push({ objAddress: obj.objAddress, objData });
-          }
-
-          console.log("🎉 Cena carregada com sucesso!");
-
-          loadButtonsFromJSON(loadedSceneState);
-
-          drawObj(gl);
-      } catch (error) {
-          console.error(" Erro ao processar o arquivo JSON:", error);
+      if (!Array.isArray(loadedSceneState.objDataScene)) {
+        console.error("Erro: Estrutura do JSON inválida.");
+        return;
       }
+
+      await clearCanvas(gl);
+      objDataScene = [];
+      objectsOnScene = [];
+
+      for (const obj of loadedSceneState.objectsOnScene) {
+        const objData = await loadObj(gl, obj.objAddress, {
+          objOffset: obj.objOffset,
+          scale: obj.scale,
+          yrotation: obj.yrotation,
+        });
+
+        if (!objData) {
+          console.error("Erro ao carregar o objeto:", obj.objAddress);
+          continue;
+        }
+
+        objDataScene.push({
+          ...objData,
+          yrotation: obj.yrotation !== undefined ? obj.yrotation : objData.yrotation,
+          scale: obj.scale !== undefined ? obj.scale : objData.scale,
+          objOffset: Array.isArray(obj.objOffset) 
+            ? obj.objOffset.map(parseFloat) 
+            : Array.from(objData.objOffset)
+        });
+
+        objectsOnScene.push({ objAddress: obj.objAddress, objData });
+      }
+
+      console.log("🎉 Cena carregada com sucesso!");
+
+      loadButtonsFromJSON(loadedSceneState);
+      drawObj(gl);
+    } catch (error) {
+      console.error("Erro ao processar o arquivo JSON:", error);
+    }
   };
 
   reader.onerror = (e) => {
-      console.error(" Erro ao ler o arquivo:", e.target.error);
+    console.error("Erro ao ler o arquivo:", e.target.error);
   };
 
   reader.readAsText(file);
